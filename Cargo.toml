@@ -6,5 +6,6 @@ edition = "2021"
 [dependencies]
 raylib = "5.0"
 symmetric-shadowcasting = "0.2"
-irrgarten = "0.1"
 rand = "0.8.5"
+tatami-dungeon = "0.1.2"
+pathfinding = "4.10.0"
