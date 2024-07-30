@@ -47,25 +47,13 @@ fn check_collision(state: &mut State, delta: &Pos) {
     }
 }
 
-fn draw_outlined_text(
-    d: &mut RaylibDrawHandle,
-    text: &str,
-    x: i32,
-    y: i32,
-    color: Color,
-    outline_color: Color,
-) {
-    for i in -6..7 {
-        d.draw_text(text, x + i, y + i, 20, outline_color)
-    }
-    d.draw_text(text, x, y, 20, color);
-}
-
 fn inside(pos: Rectangle, size: Rectangle) -> bool {
     pos.x >= size.x
         && pos.y >= size.y
         && pos.x < size.x + size.width
         && pos.y < size.y + size.height
+        && pos.x + pos.width < size.x + size.width
+        && pos.y + pos.height < size.y + size.height
 }
 
 fn draw_main_screen(
@@ -133,18 +121,36 @@ fn draw_main_screen(
 
                 let rec = match (upper_block, right_block, bottom_block, left_block) {
                     // Horizontal and vertical texture computing based on empty adjacent tile
-                    (None, Some(_), Some(_), Some(_)) => components.lower_horizontal_wall_rect,
-                    (Some(_), None, Some(_), Some(_)) => components.left_vertical_wall_rect,
-                    (Some(_), Some(_), None, Some(_)) => components.upper_horizontal_wall_rect,
-                    (Some(_), Some(_), Some(_), None) => components.right_vertical_wall_rect,
+                    (None, Some(Block::Wall), Some(Block::Wall), Some(Block::Wall)) => {
+                        components.lower_horizontal_wall_rect
+                    }
+                    (Some(Block::Wall), None, Some(Block::Wall), Some(Block::Wall)) => {
+                        components.left_vertical_wall_rect
+                    }
+                    (Some(Block::Wall), Some(Block::Wall), None, Some(Block::Wall)) => {
+                        components.upper_horizontal_wall_rect
+                    }
+                    (Some(Block::Wall), Some(Block::Wall), Some(Block::Wall), None) => {
+                        components.right_vertical_wall_rect
+                    }
 
                     // Corner textures computing based on empty adjacent tiles
-                    (None, None, Some(_), Some(_)) => components.right_upper_corner_rect,
-                    (None, Some(_), None, Some(_)) => components.lower_horizontal_wall_rect, // double
-                    (None, Some(_), Some(_), None) => components.left_upper_corner_rect,
-                    (Some(_), None, None, Some(_)) => components.right_bottom_corner_rect, // double
-                    (Some(_), None, Some(_), None) => components.player_rect, // not sure
-                    (Some(_), Some(_), None, None) => components.left_bottom_corner_rect,
+                    (None, None, Some(Block::Wall), Some(Block::Wall)) => {
+                        components.right_upper_corner_rect
+                    }
+                    (None, Some(Block::Wall), None, Some(Block::Wall)) => {
+                        components.lower_horizontal_wall_rect
+                    } // double
+                    (None, Some(Block::Wall), Some(Block::Wall), None) => {
+                        components.left_upper_corner_rect
+                    }
+                    (Some(Block::Wall), None, None, Some(Block::Wall)) => {
+                        components.right_bottom_corner_rect
+                    } // double
+                    (Some(Block::Wall), None, Some(Block::Wall), None) => components.player_rect, // not sure
+                    (Some(Block::Wall), Some(Block::Wall), None, None) => {
+                        components.left_bottom_corner_rect
+                    }
 
                     _ => match (
                         right_upper_corner,
@@ -152,16 +158,16 @@ fn draw_main_screen(
                         left_bottom_corner,
                         left_upper_corner,
                     ) {
-                        (None, Some(_), Some(_), Some(_)) => {
+                        (None, Some(Block::Wall), Some(Block::Wall), Some(Block::Wall)) => {
                             components.inner_left_bottom_corner_rect
                         }
-                        (Some(_), None, Some(_), Some(_)) => {
+                        (Some(Block::Wall), None, Some(Block::Wall), Some(Block::Wall)) => {
                             components.inner_left_upper_corner_rect
                         }
-                        (Some(_), Some(_), None, Some(_)) => {
+                        (Some(Block::Wall), Some(Block::Wall), None, Some(Block::Wall)) => {
                             components.inner_right_upper_corner_rect
                         }
-                        (Some(_), Some(_), Some(_), None) => {
+                        (Some(Block::Wall), Some(Block::Wall), Some(Block::Wall), None) => {
                             components.inner_right_bottom_corner_rect
                         }
 
@@ -225,6 +231,15 @@ fn draw_main_screen(
             components.vfactor as f32,
             components.vfactor as f32,
         );
+        if !inside(dest_rect, size) {
+            continue;
+        }
+        let dest_rect = Rectangle::new(
+            x as f32,
+            y as f32,
+            components.vfactor as f32,
+            components.vfactor as f32,
+        );
         d.draw_texture_pro(
             components.tex,
             components.enemy_rect,
@@ -258,12 +273,12 @@ fn draw_ui(d: &mut RaylibDrawHandle, state: &State, size: &Rectangle) {
         player::PlayerState::Combat(_) => {
             let banner = format!(
                 "
-In Combat
+In Combat (Hp: {0})
 
-(p) - Attack with {0}
-(o) - Use {0}
+(p) - Attack with {1}
+(o) - Use {1}
 ",
-                &state.player.carrying
+                &state.player.hp, &state.player.carrying
             ) + &state
                 .player
                 .items
@@ -273,14 +288,8 @@ In Combat
                 .collect::<Vec<String>>()
                 .join("\n");
             for (i, line) in banner.lines().enumerate() {
-                draw_outlined_text(
-                    d,
-                    line,
-                    0,
-                    size.x as i32 + (20 * i) as i32,
-                    Color::RED,
-                    Color::BLACK,
-                );
+                let height = (size.y as i32) + (20 * i) as i32;
+                d.draw_text(line, 0, height, 20, Color::RED);
             }
         }
     }
@@ -498,7 +507,6 @@ fn main() {
         }
         for enemy in new_enemies {
             if enemy.hp > 0 {
-                println!("{:?}", enemy);
                 state.enemies.insert(enemy.pos, enemy);
             }
         }
@@ -515,6 +523,7 @@ fn main() {
             &state,
             &Rectangle::new(0.0, (height / 3 * 2) as f32, width as f32, height as f32),
         );
+        d.draw_line(0, (height / 3 * 2), width, (height / 3 * 2), Color::RED);
         components.active_turn = false;
 
         state.update();

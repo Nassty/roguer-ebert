@@ -11,7 +11,7 @@ pub enum PlayerState {
 
 #[derive(Debug)]
 pub struct Player {
-    hp: i32,
+    pub hp: i32,
     ac: i32,
     luck: i32,
     pub pos: Pos,
