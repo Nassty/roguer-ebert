@@ -1085,7 +1085,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rogulicious"
+name = "roguer-ebert"
 version = "0.1.0"
 dependencies = [
  "pathfinding",
