@@ -121,9 +121,70 @@ fn draw_main_screen(
                     components.vfactor as f32,
                     components.vfactor as f32,
                 );
+                let upper_block = state.map.get(&add(&pos, &(0, -1)));
+                let bottom_block = state.map.get(&add(&pos, &(0, 1)));
+                let left_block = state.map.get(&add(&pos, &(-1, 0)));
+                let right_block = state.map.get(&add(&pos, &(1, 0)));
+
+                let right_upper_corner = state.map.get(&add(&pos, &(1, -1)));
+                let right_bottom_corner = state.map.get(&add(&pos, &(1, 1)));
+                let left_bottom_corner = state.map.get(&add(&pos, &(-1, 1)));
+                let left_upper_corner = state.map.get(&add(&pos, &(-1, -1)));
+
+                let rec = match (upper_block, right_block, bottom_block, left_block) {
+                    // Horizontal and vertical texture computing based on empty adjacent tile
+                    (None, Some(_), Some(_), Some(_)) => components.lower_horizontal_wall_rect,
+                    (Some(_), None, Some(_), Some(_)) => components.left_vertical_wall_rect,
+                    (Some(_), Some(_), None, Some(_)) => components.upper_horizontal_wall_rect,
+                    (Some(_), Some(_), Some(_), None) => components.right_vertical_wall_rect,
+
+                    // Corner textures computing based on empty adjacent tiles
+                    (None, None, Some(_), Some(_)) => components.right_upper_corner_rect,
+                    (None, Some(_), None, Some(_)) => components.lower_horizontal_wall_rect, // double
+                    (None, Some(_), Some(_), None) => components.left_upper_corner_rect,
+                    (Some(_), None, None, Some(_)) => components.right_bottom_corner_rect, // double
+                    (Some(_), None, Some(_), None) => components.player_rect, // not sure
+                    (Some(_), Some(_), None, None) => components.left_bottom_corner_rect,
+
+                    _ => match (
+                        right_upper_corner,
+                        right_bottom_corner,
+                        left_bottom_corner,
+                        left_upper_corner,
+                    ) {
+                        (None, Some(_), Some(_), Some(_)) => {
+                            components.inner_left_bottom_corner_rect
+                        }
+                        (Some(_), None, Some(_), Some(_)) => {
+                            components.inner_left_upper_corner_rect
+                        }
+                        (Some(_), Some(_), None, Some(_)) => {
+                            components.inner_right_upper_corner_rect
+                        }
+                        (Some(_), Some(_), Some(_), None) => {
+                            components.inner_right_bottom_corner_rect
+                        }
+
+                        _ => components.enemy_rect,
+                    },
+                    //
+                    // (None, None, None, None) => todo!(),
+                    // (None, None, None, Some(_)) => todo!(),
+                    // (None, None, Some(_), None) => todo!(),
+                    // (None, Some(_), None, None) => todo!(),
+                    // (Some(_), None, None, None) => todo!(),
+                    //
+                    // (None, Some(_), Some(_), Some(_)) => todo!(),
+                    // (Some(_), None, None, Some(_)) => todo!(),
+                    // (Some(_), None, Some(_), Some(_)) => todo!(),
+                    // (Some(_), Some(_), None, None) => todo!(),
+                    // (Some(_), Some(_), None, Some(_)) => todo!(),
+                    // (Some(_), Some(_), Some(_), None) => todo!(),
+                    // (Some(_), Some(_), Some(_), Some(_)) => todo!(),
+                };
                 d.draw_texture_pro(
                     components.tex,
-                    components.wall_rect,
+                    rec,
                     dest_rect,
                     components.origin,
                     components.rotation,
@@ -225,9 +286,23 @@ In Combat
     }
 }
 
+#[allow(dead_code)]
 struct GameComponents<'a> {
     tex: &'a Texture2D,
-    wall_rect: Rectangle,
+    lower_horizontal_wall_rect: Rectangle,
+    upper_horizontal_wall_rect: Rectangle,
+    left_vertical_wall_rect: Rectangle,
+    right_vertical_wall_rect: Rectangle,
+    left_upper_corner_rect: Rectangle,
+    right_upper_corner_rect: Rectangle,
+    left_bottom_corner_rect: Rectangle,
+    right_bottom_corner_rect: Rectangle,
+
+    inner_left_upper_corner_rect: Rectangle,
+    inner_right_upper_corner_rect: Rectangle,
+    inner_left_bottom_corner_rect: Rectangle,
+    inner_right_bottom_corner_rect: Rectangle,
+
     enemy_rect: Rectangle,
     floor_rect: Rectangle,
     player_rect: Rectangle,
@@ -247,7 +322,21 @@ impl<'a> GameComponents<'a> {
             Vector2::new(16.0, 16.0),
             1,
         );
-        let wall_rect = sheet.index_to_rect(24);
+        let lower_horizontal_wall_rect = sheet.index_to_rect(24);
+        let upper_horizontal_wall_rect = sheet.index_to_rect(2);
+        let left_vertical_wall_rect = sheet.index_to_rect(12);
+        let right_vertical_wall_rect = sheet.index_to_rect(14);
+
+        let left_upper_corner_rect = sheet.index_to_rect(4);
+        let right_upper_corner_rect = sheet.index_to_rect(5);
+        let left_bottom_corner_rect = sheet.index_to_rect(15);
+        let right_bottom_corner_rect = sheet.index_to_rect(16);
+
+        let inner_left_upper_corner_rect = sheet.index_to_rect(1);
+        let inner_right_upper_corner_rect = sheet.index_to_rect(3);
+        let inner_left_bottom_corner_rect = sheet.index_to_rect(23);
+        let inner_right_bottom_corner_rect = sheet.index_to_rect(25);
+
         let enemy_rect = sheet.index_to_rect(111);
         let floor_rect = sheet.index_to_rect(0);
         let player_rect = sheet.index_to_rect(88);
@@ -259,7 +348,22 @@ impl<'a> GameComponents<'a> {
         let midpoint = Vector2::new(screen_size.x / 2.0, screen_size.y / 2.0);
         Self {
             tex,
-            wall_rect,
+
+            lower_horizontal_wall_rect,
+            upper_horizontal_wall_rect,
+            left_vertical_wall_rect,
+            right_vertical_wall_rect,
+
+            left_upper_corner_rect,
+            right_upper_corner_rect,
+            left_bottom_corner_rect,
+            right_bottom_corner_rect,
+
+            inner_left_upper_corner_rect,
+            inner_right_upper_corner_rect,
+            inner_left_bottom_corner_rect,
+            inner_right_bottom_corner_rect,
+
             enemy_rect,
             floor_rect,
             player_rect,
@@ -318,19 +422,19 @@ fn main() {
                         }
                         KeyboardKey::KEY_ONE => {
                             components.active_turn = true;
-                            state.player.equip(0);
+                            let _ = state.player.equip(0);
                         }
                         KeyboardKey::KEY_TWO => {
                             components.active_turn = true;
-                            state.player.equip(1);
+                            let _ = state.player.equip(1);
                         }
                         KeyboardKey::KEY_THREE => {
                             components.active_turn = true;
-                            state.player.equip(2);
+                            let _ = state.player.equip(2);
                         }
                         KeyboardKey::KEY_FOUR => {
                             components.active_turn = true;
-                            state.player.equip(3);
+                            let _ = state.player.equip(3);
                         }
                         _ => {}
                     }
