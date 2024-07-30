@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use raylib::prelude::*;
 use symmetric_shadowcasting::Pos;
 mod enemy;
@@ -93,9 +94,11 @@ fn draw_main_screen(
                     components.vfactor as f32,
                     components.vfactor as f32,
                 );
+                let mut r = StdRng::seed_from_u64((pos.0 * pos.1) as u64);
+                let k = r.gen_range(0..3);
                 d.draw_texture_pro(
                     components.tex,
-                    components.floor_rect,
+                    components.floor_rects.get(k).unwrap(),
                     dest_rect,
                     components.origin,
                     components.rotation,
@@ -170,23 +173,8 @@ fn draw_main_screen(
                         (Some(Block::Wall), Some(Block::Wall), Some(Block::Wall), None) => {
                             components.inner_right_bottom_corner_rect
                         }
-
                         _ => components.enemy_rect,
                     },
-                    //
-                    // (None, None, None, None) => todo!(),
-                    // (None, None, None, Some(_)) => todo!(),
-                    // (None, None, Some(_), None) => todo!(),
-                    // (None, Some(_), None, None) => todo!(),
-                    // (Some(_), None, None, None) => todo!(),
-                    //
-                    // (None, Some(_), Some(_), Some(_)) => todo!(),
-                    // (Some(_), None, None, Some(_)) => todo!(),
-                    // (Some(_), None, Some(_), Some(_)) => todo!(),
-                    // (Some(_), Some(_), None, None) => todo!(),
-                    // (Some(_), Some(_), None, Some(_)) => todo!(),
-                    // (Some(_), Some(_), Some(_), None) => todo!(),
-                    // (Some(_), Some(_), Some(_), Some(_)) => todo!(),
                 };
                 d.draw_texture_pro(
                     components.tex,
@@ -268,10 +256,19 @@ fn draw_main_screen(
 
 #[allow(unused)]
 fn draw_ui(d: &mut RaylibDrawHandle, state: &State, size: &Rectangle) {
-    match &state.player.state {
-        player::PlayerState::Walking => {}
+    let banner = match &state.player.state {
+        player::PlayerState::Walking => {
+            format!(
+                "
+Walking (Hp: {0})
+
+Carrying: {1}
+",
+                &state.player.hp, &state.player.carrying
+            )
+        }
         player::PlayerState::Combat(_) => {
-            let banner = format!(
+            format!(
                 "
 In Combat (Hp: {0})
 
@@ -286,12 +283,13 @@ In Combat (Hp: {0})
                 .enumerate()
                 .map(|(i, v)| format!("({}) - Equip {}", i + 1, v))
                 .collect::<Vec<String>>()
-                .join("\n");
-            for (i, line) in banner.lines().enumerate() {
-                let height = (size.y as i32) + (20 * i) as i32;
-                d.draw_text(line, 0, height, 20, Color::RED);
-            }
+                .join("\n")
         }
+    };
+
+    for (i, line) in banner.lines().enumerate() {
+        let height = (size.y as i32) + (20 * i) as i32;
+        d.draw_text(line, 0, height, 20, Color::RED);
     }
 }
 
@@ -313,7 +311,7 @@ struct GameComponents<'a> {
     inner_right_bottom_corner_rect: Rectangle,
 
     enemy_rect: Rectangle,
-    floor_rect: Rectangle,
+    floor_rects: Vec<Rectangle>,
     player_rect: Rectangle,
     origin: Vector2,
     rotation: f32,
@@ -347,7 +345,11 @@ impl<'a> GameComponents<'a> {
         let inner_right_bottom_corner_rect = sheet.index_to_rect(25);
 
         let enemy_rect = sheet.index_to_rect(111);
-        let floor_rect = sheet.index_to_rect(0);
+        let floor_rects = vec![
+            sheet.index_to_rect(0),
+            sheet.index_to_rect(11),
+            sheet.index_to_rect(22),
+        ];
         let player_rect = sheet.index_to_rect(88);
         let origin = Vector2::new(0.0, 0.0);
         let rotation = 0.0;
@@ -374,7 +376,7 @@ impl<'a> GameComponents<'a> {
             inner_right_bottom_corner_rect,
 
             enemy_rect,
-            floor_rect,
+            floor_rects,
             player_rect,
             origin,
             rotation,
@@ -388,8 +390,8 @@ impl<'a> GameComponents<'a> {
 }
 
 fn main() {
-    let width = 800;
-    let height = 600;
+    let width = 1024;
+    let height = 768;
     let debounce_map: &mut HashMap<KeyboardKey, u32> = &mut HashMap::new();
     let mut player = Player::new((1, 1));
     let mut state = State::new(&mut player);
@@ -401,9 +403,26 @@ fn main() {
         .build();
     rl.set_target_fps(60);
     let tex = rl.load_texture(&thread, "tilemap.png").expect("texture");
-    let mut components = GameComponents::new(&tex, Vector2::new(width as f32, height as f32));
+    let mut components =
+        GameComponents::new(&tex, Vector2::new(width as f32, (height / 3 * 2) as f32));
 
     while !rl.window_should_close() {
+        if state.player.hp <= 0 {
+            {
+                // TODO: REVISAR COMO CENTRAR TEXTO
+                let k = rl.measure_text("DEAD", 20);
+                let mut d = rl.begin_drawing(&thread);
+                d.clear_background(Color::BLACK);
+                d.draw_text(
+                    "DEAD",
+                    components.midpoint.x as i32 - 10,
+                    components.midpoint.y as i32 - k / 2,
+                    40,
+                    Color::RED,
+                );
+                continue;
+            }
+        }
         match &state.player.state {
             player::PlayerState::Walking => {
                 let mut k = 1;
@@ -523,7 +542,6 @@ fn main() {
             &state,
             &Rectangle::new(0.0, (height / 3 * 2) as f32, width as f32, height as f32),
         );
-        d.draw_line(0, (height / 3 * 2), width, (height / 3 * 2), Color::RED);
         components.active_turn = false;
 
         state.update();
