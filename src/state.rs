@@ -10,6 +10,7 @@ pub struct State<'a> {
     pub map: HashMap<Pos, Block>,
     pub enemies: HashMap<Pos, Enemy>,
     pub player: &'a mut Player,
+    pub log: Vec<String>,
 }
 
 impl<'a> State<'a> {
@@ -18,10 +19,14 @@ impl<'a> State<'a> {
             player,
             map: Default::default(),
             enemies: Default::default(),
+            log: vec![],
         }
     }
     pub fn update(&mut self) {
         self.player.check_sourrounding(&self.compute_enemies());
+    }
+    pub fn event(&mut self, event: String) {
+        self.log.push(event);
     }
     pub fn compute_walls(&self) -> Vec<Pos> {
         let mut fov: Vec<Pos> = vec![];

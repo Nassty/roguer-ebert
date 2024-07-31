@@ -409,6 +409,10 @@ fn main() {
     while !rl.window_should_close() {
         if state.player.hp <= 0 {
             {
+                if let Some(KeyboardKey::KEY_R) = rl.get_key_pressed() {
+                    state.reset();
+                    state.player.hp = 100;
+                }
                 // TODO: REVISAR COMO CENTRAR TEXTO
                 let k = rl.measure_text("DEAD", 20);
                 let mut d = rl.begin_drawing(&thread);
@@ -463,6 +467,9 @@ fn main() {
                         KeyboardKey::KEY_FOUR => {
                             components.active_turn = true;
                             let _ = state.player.equip(3);
+                        }
+                        KeyboardKey::KEY_F => {
+                            rl.toggle_fullscreen();
                         }
                         _ => {}
                     }
