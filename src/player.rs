@@ -1,5 +1,5 @@
+use crate::utils::Pos;
 use rand::Rng;
-use symmetric_shadowcasting::Pos;
 
 use crate::{distance, enemy::Enemy};
 

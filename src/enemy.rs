@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
+use crate::utils::Pos;
 use pathfinding::prelude::astar;
 use rand::Rng;
-use symmetric_shadowcasting::Pos;
 
 use crate::{distance, player::Player, Block};
 
@@ -46,7 +46,7 @@ impl Enemy {
             player.hit_by(damage);
         }
         let path = astar(
-            &self.pos,
+            &self.pos.as_tuple(),
             |&(x, y)| {
                 vec![
                     (x + 1, y + 2),
@@ -59,16 +59,19 @@ impl Enemy {
                     (x - 2, y - 1),
                 ]
                 .into_iter()
-                .filter(|x| !map.contains_key(x) && !enemies.contains_key(x) && self.timer % 5 == 0)
+                .filter(|x| {
+                    let x = Pos(x.0, x.1);
+                    !map.contains_key(&x) && !enemies.contains_key(&x) && self.timer % 5 == 0
+                })
                 .map(|p| (p, 1))
             },
             |&(x, y)| (player.pos.0.abs_diff(x) + player.pos.1.abs_diff(y)) / 2,
-            |&p| p == player.pos,
+            |&p| p == player.pos.as_tuple(),
         );
         if let Some((p, _)) = &path {
             if let Some(x) = p.get(1) {
-                if *x != player.pos {
-                    self.pos = *x
+                if *x != player.pos.as_tuple() {
+                    self.pos = (*x).into()
                 }
             }
         }

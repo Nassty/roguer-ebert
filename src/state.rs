@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use symmetric_shadowcasting::{compute_fov, Pos};
+use crate::utils::Pos;
+use symmetric_shadowcasting::{compute_fov, Pos as SPos};
 use tatami_dungeon::{Dungeon, GenerateDungeonParams, Tile};
 
 use crate::{distance, player::Player, Block, Enemy};
@@ -30,30 +31,33 @@ impl<'a> State<'a> {
     }
     pub fn compute_walls(&self) -> Vec<Pos> {
         let mut fov: Vec<Pos> = vec![];
-        let mut is_visible = |pos| fov.push(pos);
-        let mut v = |pos: Pos| {
-            distance(pos, self.player.pos) > 10.0 || { self.map.get(&pos) == Some(&Block::Wall) }
+        let mut is_visible = |pos: SPos| fov.push(pos.into());
+        let mut v = |pos: SPos| {
+            distance(pos.into(), self.player.pos) > 10.0 || {
+                self.map.get(&pos.into()) == Some(&Block::Wall)
+            }
         };
-        compute_fov(self.player.pos, &mut v, &mut is_visible);
+        compute_fov(self.player.pos.as_tuple(), &mut v, &mut is_visible);
         fov
     }
 
     pub fn compute_enemies(&self) -> Vec<Pos> {
         let mut fov = vec![];
-        let mut is_visible = |pos: Pos| {
-            if self.enemies.contains_key(&pos) {
-                fov.push(pos);
+        let mut is_visible = |pos: SPos| {
+            if self.enemies.contains_key(&pos.into()) {
+                fov.push(pos.into());
             }
         };
-        let mut v = |pos: Pos| {
-            distance(pos, self.player.pos) > 10.0 || { self.map.get(&pos) == Some(&Block::Wall) }
+        let mut v = |pos: SPos| {
+            distance(pos.into(), self.player.pos) > 10.0 || {
+                self.map.get(&pos.into()) == Some(&Block::Wall)
+            }
         };
-        compute_fov(self.player.pos, &mut v, &mut is_visible);
+        compute_fov(self.player.pos.as_tuple(), &mut v, &mut is_visible);
         fov
     }
 
     pub fn reset(&mut self) {
-        self.player.pos = (1, 1);
         let params = GenerateDungeonParams {
             max_enemies_per_room: 1,
             squareness: 0.1,
@@ -64,6 +68,11 @@ impl<'a> State<'a> {
             ..Default::default()
         };
         let dungeon = Dungeon::generate_with_params(params);
+        self.player.pos = (
+            dungeon.player_position.x as isize,
+            dungeon.player_position.y as isize,
+        )
+            .into();
         let floor = &dungeon.floors[0];
         let mut map = HashMap::new();
         let mut farthes = f32::MIN;
@@ -72,14 +81,14 @@ impl<'a> State<'a> {
             for (y, tile) in col.iter().enumerate() {
                 match tile {
                     Tile::Floor => {
-                        let dis = distance(self.player.pos, (x as isize, y as isize));
+                        let dis = distance(self.player.pos, (x as isize, y as isize).into());
                         if dis > farthes {
                             farthes = dis;
                             far_pos = (x as isize, y as isize);
                         }
                     }
                     Tile::Wall => {
-                        map.insert((x as isize, y as isize), Block::Wall);
+                        map.insert((x as isize, y as isize).into(), Block::Wall);
                     }
                 }
             }
@@ -88,7 +97,10 @@ impl<'a> State<'a> {
             k.teleporters.iter().map(|t| {
                 (
                     t.id,
-                    (t.connected, (t.position.x as isize, t.position.y as isize)),
+                    (
+                        t.connected,
+                        (t.position.x as isize, t.position.y as isize).into(),
+                    ),
                 )
             })
         }));
@@ -98,7 +110,7 @@ impl<'a> State<'a> {
         }
         let enemies: HashMap<Pos, Enemy> = HashMap::from_iter(floor.rooms.iter().flat_map(|r| {
             r.enemies.iter().step_by(2).map(|enemy| {
-                let p = (enemy.position.x as isize, enemy.position.y as isize);
+                let p = (enemy.position.x as isize, enemy.position.y as isize).into();
                 (p, Enemy::new(32, p))
             })
         }));
@@ -108,15 +120,8 @@ impl<'a> State<'a> {
                 (0, 1)
             })
         }));
-        map.insert(far_pos, Block::Exit);
+        map.insert(far_pos.into(), Block::Exit);
         self.map = map;
         self.enemies = enemies;
-        loop {
-            if self.map.get(&self.player.pos) == Some(&Block::Wall) {
-                self.player.pos = crate::add(&self.player.pos, &(1, 1));
-            } else {
-                return;
-            }
-        }
     }
 }
