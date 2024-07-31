@@ -7,12 +7,12 @@ mod sprite_sheet;
 use enemy::Enemy;
 
 mod state;
-use state::State;
+use state::{EventType, State};
 mod player;
 use player::Player;
 
 mod draw;
-use draw::{draw_end_screen, draw_main_screen, draw_ui};
+use draw::{draw_end_screen, draw_log, draw_main_screen, draw_ui};
 
 mod components;
 use components::GameComponents;
@@ -62,7 +62,11 @@ fn main() {
                         KeyboardKey::KEY_P => {
                             let p = e.first().unwrap();
                             if let Some(enemy) = state.enemies.get_mut(p) {
-                                state.player.attack(enemy);
+                                let damage = state.player.attack(enemy);
+                                state.event(
+                                    format!("You attacked an enemy for {} damage", damage),
+                                    EventType::DamageDealt,
+                                );
                                 components.active_turn = true;
                             } else {
                                 println!("Enemy not found");
@@ -83,9 +87,6 @@ fn main() {
                         KeyboardKey::KEY_FOUR => {
                             components.active_turn = true;
                             let _ = state.player.equip(3);
-                        }
-                        KeyboardKey::KEY_F => {
-                            rl.toggle_fullscreen();
                         }
                         _ => {}
                     }
@@ -111,6 +112,9 @@ fn main() {
                 KeyboardKey::KEY_O if components.debug => {
                     components.active_turn = true;
                 }
+                KeyboardKey::KEY_F => {
+                    rl.toggle_fullscreen();
+                }
                 _ => {}
             }
         }
@@ -118,6 +122,7 @@ fn main() {
         match state.map.get(&state.player.pos) {
             Some(&Block::Wall) => {}
             Some(&Block::Teleporter(p)) => {
+                state.event("Teleporter activated".to_string(), EventType::Teleport);
                 state.map.remove(&state.player.pos);
                 state.player.pos = p + (-1, -1).into();
             }
@@ -132,15 +137,22 @@ fn main() {
         let pps = state.compute_enemies();
         let k_enemies = state.enemies.clone();
         let mut new_enemies = vec![];
+        let mut logs = vec![];
         for pos in &pps {
             let enemy = state.enemies.get_mut(pos);
             if enemy.is_none() {
                 continue;
             }
             let enemy = enemy.unwrap();
-            enemy.update(state.player, &state.map, &k_enemies, components.active_turn);
+            let damage = enemy.update(state.player, &state.map, &k_enemies, components.active_turn);
+            if let Some(damage) = damage {
+                logs.push(format!("Ghost hits you for {} damage", damage));
+            }
             new_enemies.push(enemy.clone());
             state.enemies.remove(pos);
+        }
+        for log in logs {
+            state.event(log, EventType::DamageTaken);
         }
         for enemy in new_enemies {
             if enemy.hp > 0 {
@@ -158,7 +170,22 @@ fn main() {
         draw_ui(
             &mut d,
             &state,
-            &Rectangle::new(0.0, (height / 3 * 2) as f32, width as f32, height as f32),
+            &Rectangle::new(
+                0.0,
+                (height / 3 * 2) as f32,
+                (width / 2) as f32,
+                height as f32,
+            ),
+        );
+        draw_log(
+            &mut d,
+            &state,
+            &Rectangle::new(
+                (width / 2) as f32,
+                (height / 3 * 2) as f32,
+                (width / 2) as f32,
+                height as f32,
+            ),
         );
         components.active_turn = false;
 

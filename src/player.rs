@@ -40,9 +40,11 @@ impl Player {
         self.hp -= remaining_damage;
     }
 
-    pub fn attack(&mut self, enemy: &mut Enemy) {
+    #[must_use]
+    pub fn attack(&mut self, enemy: &mut Enemy) -> i32 {
         let damage = rand::thread_rng().gen_range(0..self.luck + 1);
         enemy.hit_by(damage);
+        damage
     }
 
     pub fn equip(&mut self, i: usize) -> Result<(), ()> {

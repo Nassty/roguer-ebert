@@ -1,17 +1,25 @@
 use std::collections::HashMap;
 
 use crate::utils::Pos;
+use bounded_vec_deque::BoundedVecDeque;
 use symmetric_shadowcasting::{compute_fov, Pos as SPos};
 use tatami_dungeon::{Dungeon, GenerateDungeonParams, Tile};
 
 use crate::{distance, player::Player, Block, Enemy};
 
 #[derive(Debug)]
+pub enum EventType {
+    DamageDealt,
+    DamageTaken,
+    Teleport,
+}
+
+#[derive(Debug)]
 pub struct State<'a> {
     pub map: HashMap<Pos, Block>,
     pub enemies: HashMap<Pos, Enemy>,
     pub player: &'a mut Player,
-    pub log: Vec<String>,
+    pub log: BoundedVecDeque<(String, EventType)>,
 }
 
 impl<'a> State<'a> {
@@ -20,14 +28,14 @@ impl<'a> State<'a> {
             player,
             map: Default::default(),
             enemies: Default::default(),
-            log: vec![],
+            log: BoundedVecDeque::new(8),
         }
     }
     pub fn update(&mut self) {
         self.player.check_sourrounding(&self.compute_enemies());
     }
-    pub fn event(&mut self, event: String) {
-        self.log.push(event);
+    pub fn event(&mut self, event: String, etype: EventType) {
+        self.log.push_front((event, etype));
     }
     pub fn compute_walls(&self) -> Vec<Pos> {
         let mut fov: Vec<Pos> = vec![];

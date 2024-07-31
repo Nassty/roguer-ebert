@@ -5,7 +5,11 @@ use raylib::{
     RaylibHandle, RaylibThread,
 };
 
-use crate::{player, state::State, Block, GameComponents};
+use crate::{
+    player,
+    state::{EventType, State},
+    Block, GameComponents,
+};
 
 macro_rules! translate_pos {
     ($pos:expr, $player:expr, $midpoint:expr, $vfactor:expr) => {{
@@ -257,6 +261,7 @@ pub fn draw_ui(d: &mut RaylibDrawHandle, state: &State, size: &Rectangle) {
 Walking (Hp: {0})
 
 Carrying: {1}
+
 ",
                 &state.player.hp, &state.player.carrying
             )
@@ -268,6 +273,7 @@ In Combat (Hp: {0})
 
 (p) - Attack with {1}
 (o) - Use {1}
+
 ",
                 &state.player.hp, &state.player.carrying
             ) + &state
@@ -280,9 +286,19 @@ In Combat (Hp: {0})
                 .join("\n")
         }
     };
-
     for (i, line) in banner.lines().enumerate() {
         let height = (size.y as i32) + (20 * i) as i32;
-        d.draw_text(line, 0, height, 20, Color::RED);
+        d.draw_text(line, size.x as i32, height, 20, Color::RAYWHITE);
+    }
+}
+pub fn draw_log(d: &mut RaylibDrawHandle, state: &State, size: &Rectangle) {
+    for (i, (line, event)) in state.log.iter().enumerate() {
+        let height = (size.y as i32) + (20 * i) as i32;
+        let color = match event {
+            EventType::DamageDealt => Color::DARKRED,
+            EventType::DamageTaken => Color::RED,
+            EventType::Teleport => Color::GREEN,
+        };
+        d.draw_text(line, size.x as i32, height, 20, color);
     }
 }

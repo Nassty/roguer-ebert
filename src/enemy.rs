@@ -33,9 +33,9 @@ impl Enemy {
         map: &HashMap<Pos, Block>,
         enemies: &HashMap<Pos, Self>,
         flag: bool,
-    ) {
+    ) -> Option<i32> {
         if !flag {
-            return;
+            return None;
         }
         if self.timer < 1 {
             self.timer = 22;
@@ -44,6 +44,7 @@ impl Enemy {
         if self.timer % 3 == 0 && distance(self.pos, player.pos) < 3.0 {
             let damage = rand::thread_rng().gen_range(0..self.luck + 1);
             player.hit_by(damage);
+            return Some(damage);
         }
         let path = astar(
             &self.pos.as_tuple(),
@@ -75,5 +76,6 @@ impl Enemy {
                 }
             }
         }
+        None
     }
 }
