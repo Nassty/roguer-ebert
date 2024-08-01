@@ -12,6 +12,7 @@ pub enum EventType {
     DamageDealt,
     DamageTaken,
     Teleport,
+    XP,
 }
 
 #[derive(Debug)]
@@ -66,6 +67,7 @@ impl<'a> State<'a> {
     }
 
     pub fn reset(&mut self) {
+        self.log = BoundedVecDeque::new(8);
         let params = GenerateDungeonParams {
             max_enemies_per_room: 1,
             squareness: 0.1,
@@ -119,15 +121,15 @@ impl<'a> State<'a> {
         let enemies: HashMap<Pos, Enemy> = HashMap::from_iter(floor.rooms.iter().flat_map(|r| {
             r.enemies.iter().step_by(2).map(|enemy| {
                 let p = (enemy.position.x as isize, enemy.position.y as isize).into();
-                (p, Enemy::new(32, p))
+                (p, Enemy::new(32, p, enemy.difficulty))
             })
         }));
-        let _items = HashMap::<i32, i32>::from_iter(floor.rooms.iter().flat_map(|r| {
-            r.items.iter().map(|i| {
-                dbg!(i);
-                (0, 1)
-            })
-        }));
+        //let _items = HashMap::<i32, i32>::from_iter(floor.rooms.iter().flat_map(|r| {
+        //    r.items.iter().map(|i| {
+        //        dbg!(i);
+        //        (0, 1)
+        //    })
+        //}));
         map.insert(far_pos.into(), Block::Exit);
         self.map = map;
         self.enemies = enemies;

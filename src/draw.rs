@@ -1,8 +1,10 @@
 use crate::utils::Pos;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use raylib::{
+    math::rrect,
     prelude::{Color, KeyboardKey, RaylibDraw, RaylibDrawHandle, Rectangle},
-    RaylibHandle, RaylibThread,
+    rgui::RaylibDrawGui,
+    rstr, RaylibHandle, RaylibThread,
 };
 
 use crate::{
@@ -35,8 +37,10 @@ pub fn draw_end_screen(
     components: &GameComponents,
 ) {
     if let Some(KeyboardKey::KEY_R) = rl.get_key_pressed() {
-        state.reset();
+        state.player.xp = 0;
         state.player.hp = 100;
+        state.log.clear();
+        state.reset();
     }
     // TODO: REVISAR COMO CENTRAR TEXTO
     let k = rl.measure_text("DEAD", 20);
@@ -248,7 +252,7 @@ pub fn draw_main_screen(
         components.player_rect,
         dest_rect,
         components.origin,
-        components.rotation,
+        state.player.get_swing_deg(),
         Color::WHITE,
     );
 }
@@ -258,12 +262,12 @@ pub fn draw_ui(d: &mut RaylibDrawHandle, state: &State, size: &Rectangle) {
         player::PlayerState::Walking => {
             format!(
                 "
-Walking (Hp: {0})
+Walking (Hp: {}, XP: {})
 
-Carrying: {1}
+Carrying: {}
 
 ",
-                &state.player.hp, &state.player.carrying
+                &state.player.hp, &state.player.xp, &state.player.carrying
             )
         }
         player::PlayerState::Combat(_) => {
@@ -297,7 +301,7 @@ pub fn draw_log(d: &mut RaylibDrawHandle, state: &State, size: &Rectangle) {
         let color = match event {
             EventType::DamageDealt => Color::DARKRED,
             EventType::DamageTaken => Color::RED,
-            EventType::Teleport => Color::GREEN,
+            EventType::Teleport | EventType::XP => Color::GREEN,
         };
         d.draw_text(line, size.x as i32, height, 20, color);
     }

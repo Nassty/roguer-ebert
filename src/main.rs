@@ -100,13 +100,13 @@ fn main() {
                 KeyboardKey::KEY_SPACE => {
                     components.debug = !components.debug;
                 }
-                KeyboardKey::KEY_MINUS if components.debug => {
+                KeyboardKey::KEY_MINUS => {
                     components.vfactor -= 1;
                 }
-                KeyboardKey::KEY_EQUAL if components.debug => {
+                KeyboardKey::KEY_EQUAL => {
                     components.vfactor += 1;
                 }
-                KeyboardKey::KEY_Q if components.debug => {
+                KeyboardKey::KEY_Q => {
                     components.vfactor = 10;
                 }
                 KeyboardKey::KEY_O if components.debug => {
@@ -123,7 +123,6 @@ fn main() {
             Some(&Block::Wall) => {}
             Some(&Block::Teleporter(p)) => {
                 state.event("Teleporter activated".to_string(), EventType::Teleport);
-                state.map.remove(&state.player.pos);
                 state.player.pos = p + (-1, -1).into();
             }
             Some(&Block::Exit) => {
@@ -157,6 +156,9 @@ fn main() {
         for enemy in new_enemies {
             if enemy.hp > 0 {
                 state.enemies.insert(enemy.pos, enemy);
+            } else {
+                state.event("Enemy died".to_string(), EventType::XP);
+                state.player.xp += enemy.dificulty as i32;
             }
         }
         let enemies = state.compute_enemies();

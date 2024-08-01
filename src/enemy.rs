@@ -12,16 +12,18 @@ pub struct Enemy {
     luck: i32,
     timer: i32,
     pub pos: Pos,
+    pub dificulty: u32,
 }
 
 impl Enemy {
-    pub fn new(hp: i32, pos: Pos) -> Self {
+    pub fn new(hp: i32, pos: Pos, dificulty: u32) -> Self {
         let luck = rand::thread_rng().gen_range(0..5);
         Self {
             hp,
             pos,
             luck,
             timer: 0,
+            dificulty,
         }
     }
     pub fn hit_by(&mut self, damage: i32) {

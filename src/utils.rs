@@ -31,9 +31,10 @@ pub fn distance(a: Pos, b: Pos) -> f32 {
 
 pub fn check_collision(state: &mut State, delta: &Pos) {
     let newpos = &(state.player.pos + *delta);
-    match state.map.get(&newpos) {
+    match state.map.get(newpos) {
         Some(Block::Wall) => {}
         _ => {
+            state.player.cicle_swing();
             state.player.pos = *newpos;
         }
     }

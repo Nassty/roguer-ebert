@@ -18,6 +18,8 @@ pub struct Player {
     pub state: PlayerState,
     pub items: Vec<String>,
     pub carrying: String,
+    pub xp: i32,
+    swing: u8,
 }
 
 impl Player {
@@ -26,12 +28,22 @@ impl Player {
         Self {
             hp: 100,
             ac: 10,
+            xp: 0,
             luck,
             pos,
             state: PlayerState::Walking,
             carrying: "Sword".to_string(),
             items: vec!["Health potion".to_string()],
+            swing: 0,
         }
+    }
+
+    pub fn cicle_swing(&mut self) {
+        self.swing = self.swing.wrapping_add(1) % 4;
+    }
+    pub fn get_swing_deg(&self) -> f32 {
+        let angle = (self.swing as f32) / 4.0 * std::f32::consts::PI * 2.0;
+        6.0 * angle.sin()
     }
 
     pub fn hit_by(&mut self, damage: i32) {
