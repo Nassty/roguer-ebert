@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use crate::item::Item;
 use crate::utils::Pos;
 use rand::Rng;
 
@@ -12,12 +15,13 @@ pub enum PlayerState {
 #[derive(Debug)]
 pub struct Player {
     pub hp: i32,
+    pub max_hp: i32,
     ac: i32,
     luck: i32,
     pub pos: Pos,
     pub state: PlayerState,
-    pub items: Vec<String>,
-    pub carrying: String,
+    pub items: Vec<Item>,
+    pub carrying: Item,
     pub xp: i32,
     swing: u8,
 }
@@ -27,13 +31,14 @@ impl Player {
         let luck = rand::thread_rng().gen_range(5..15);
         Self {
             hp: 100,
+            max_hp: 100,
             ac: 10,
             xp: 0,
             luck,
             pos,
             state: PlayerState::Walking,
-            carrying: "Sword".to_string(),
-            items: vec!["Health potion".to_string()],
+            carrying: Item::new("Sword".into(), crate::item::ItemType::Melee, HashMap::new()),
+            items: vec![],
             swing: 0,
         }
     }
@@ -65,14 +70,14 @@ impl Player {
         if let Some(item) = &item {
             let old = self.carrying.clone();
             self.items.remove(i);
-            self.carrying = item.to_string();
+            self.carrying = (*item).clone();
             self.items.push(old);
             return Ok(());
         }
         Err(())
     }
 
-    pub fn check_sourrounding(&mut self, enemies: &Vec<Pos>) {
+    pub fn check_sourroundings(&mut self, enemies: &Vec<Pos>) {
         let mut out = vec![];
         for &pos in enemies {
             let d = distance(self.pos, pos);

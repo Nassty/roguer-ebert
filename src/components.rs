@@ -17,6 +17,7 @@ pub struct GameComponents<'a> {
     pub inner_right_upper_corner_rect: Rectangle,
     pub inner_left_bottom_corner_rect: Rectangle,
     pub inner_right_bottom_corner_rect: Rectangle,
+    pub portal_rect: Rectangle,
 
     pub enemy_rect: Rectangle,
     pub floor_rects: Vec<Rectangle>,
@@ -51,6 +52,7 @@ impl<'a> GameComponents<'a> {
         let inner_right_upper_corner_rect = sheet.index_to_rect(3);
         let inner_left_bottom_corner_rect = sheet.index_to_rect(23);
         let inner_right_bottom_corner_rect = sheet.index_to_rect(25);
+        let portal_rect = sheet.index_to_rect(9);
 
         let enemy_rect = sheet.index_to_rect(111);
         let floor_rects = vec![
@@ -68,6 +70,7 @@ impl<'a> GameComponents<'a> {
         Self {
             tex,
 
+            portal_rect,
             lower_horizontal_wall_rect,
             upper_horizontal_wall_rect,
             left_vertical_wall_rect,

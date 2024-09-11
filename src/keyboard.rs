@@ -36,7 +36,13 @@ macro_rules! debounce_key_move {
     ($key:expr => $delta:expr => $rl:expr => $k:expr => $debounce_map:expr => $state:expr => $flag:expr) => {
         if $crate::keyboard::debounce(&$rl, $key, &mut $k, $debounce_map) {
             $flag = true;
-            check_collision(&mut $state, &$delta)
+            check_collision(&mut $state, &$delta);
+            if $state.path.is_full() {
+                $state.path.pop_front();
+            }
+            if !$state.path.contains(&$state.player.pos) {
+                $state.path.push_back($state.player.pos);
+            }
         }
     };
 }

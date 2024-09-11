@@ -8,6 +8,7 @@ use enemy::Enemy;
 
 mod state;
 use state::{EventType, State};
+mod item;
 mod player;
 use player::Player;
 
@@ -48,7 +49,7 @@ fn main() {
                 let mut k = 1;
                 debounce_key_move!(KeyboardKey::KEY_A => (-1, 0).into() => rl => k => debounce_map => state => components.active_turn);
                 debounce_key_move!(KeyboardKey::KEY_W => (0, -1).into() => rl => k => debounce_map => state => components.active_turn);
-                debounce_key_move!(KeyboardKey::KEY_D=> (1, 0).into() => rl => k => debounce_map => state => components.active_turn);
+                debounce_key_move!(KeyboardKey::KEY_D => (1, 0).into() => rl => k => debounce_map => state => components.active_turn);
                 debounce_key_move!(KeyboardKey::KEY_S => (0, 1).into() => rl => k => debounce_map => state => components.active_turn);
                 debounce_key_move!(KeyboardKey::KEY_UP => (0, -1).into() => rl => k => debounce_map => state => components.active_turn);
                 debounce_key_move!(KeyboardKey::KEY_DOWN => (0, 1).into() => rl => k => debounce_map => state => components.active_turn);
@@ -119,7 +120,11 @@ fn main() {
             }
         }
 
-        match state.map.get(&state.player.pos) {
+        match state
+            .map
+            .get(&state.player.pos)
+            .or(state.teleporters_map.get(&state.player.pos))
+        {
             Some(&Block::Wall) => {}
             Some(&Block::Teleporter(p)) => {
                 state.event("Teleporter activated".to_string(), EventType::Teleport);

@@ -1,10 +1,9 @@
+use crate::utils::distance;
 use crate::utils::Pos;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use raylib::{
-    math::rrect,
     prelude::{Color, KeyboardKey, RaylibDraw, RaylibDrawHandle, Rectangle},
-    rgui::RaylibDrawGui,
-    rstr, RaylibHandle, RaylibThread,
+    RaylibHandle, RaylibThread,
 };
 
 use crate::{
@@ -40,7 +39,13 @@ pub fn draw_end_screen(
         state.player.xp = 0;
         state.player.hp = 100;
         state.log.clear();
-        state.reset();
+        //state.reset();
+        let dungeon = state.dungeon.clone().unwrap();
+        state.player.pos = (
+            dungeon.player_position.x as isize,
+            dungeon.player_position.y as isize,
+        )
+            .into()
     }
     // TODO: REVISAR COMO CENTRAR TEXTO
     let k = rl.measure_text("DEAD", 20);
@@ -88,8 +93,9 @@ pub fn draw_main_screen(
         if !inside(dest_rect, size) {
             continue;
         }
+        let hue = Color::RED;
 
-        match state.map.get_mut(&pos) {
+        match state.map.get(&pos).or(state.teleporters_map.get(&pos)) {
             None => {
                 let dest_rect = Rectangle::new(
                     x as f32,
@@ -105,7 +111,7 @@ pub fn draw_main_screen(
                     dest_rect,
                     components.origin,
                     components.rotation,
-                    Color::WHITE,
+                    hue,
                 );
             }
             Some(Block::Wall) => {
@@ -185,16 +191,25 @@ pub fn draw_main_screen(
                     dest_rect,
                     components.origin,
                     components.rotation,
-                    Color::WHITE,
+                    hue,
                 );
             }
             Some(Block::Teleporter(_p)) => {
-                d.draw_rectangle(
-                    x,
-                    y,
-                    components.vfactor as i32,
-                    components.vfactor as i32,
-                    Color::YELLOW,
+                let rec = components.portal_rect;
+
+                let dest_rect = Rectangle::new(
+                    x as f32,
+                    y as f32,
+                    components.vfactor as f32,
+                    components.vfactor as f32,
+                );
+                d.draw_texture_pro(
+                    components.tex,
+                    rec,
+                    dest_rect,
+                    components.origin,
+                    components.rotation,
+                    hue,
                 );
             }
             Some(Block::Exit) => {
@@ -231,6 +246,10 @@ pub fn draw_main_screen(
             components.vfactor as f32,
             components.vfactor as f32,
         );
+
+        let size = ((enemy.hp * 100 / enemy.max_hp) * 30) / 100;
+        d.draw_rectangle(x, y - 10, 30, 5, Color::GRAY);
+        d.draw_rectangle(x, y - 10, size, 5, Color::RED);
         d.draw_texture_pro(
             components.tex,
             components.enemy_rect,
@@ -240,12 +259,42 @@ pub fn draw_main_screen(
             Color::WHITE,
         );
     }
+    for step in &state.path {
+        let (mut x, mut y) = translate_pos!(
+            step.as_tuple(),
+            state.player.pos,
+            components.midpoint,
+            components.vfactor
+        );
+        x += (components.vfactor / 2) as i32;
+        y += (components.vfactor / 2) as i32;
+
+        if !inside(Rectangle::new(x as f32, y as f32, 1.0, 1.0), size) {
+            continue;
+        }
+        d.draw_circle(x, y, 1.0, Color::WHITE);
+    }
 
     let dest_rect = Rectangle::new(
         components.midpoint.x,
         components.midpoint.y,
         components.vfactor as f32,
         components.vfactor as f32,
+    );
+    let size = ((state.player.hp * 100 / state.player.max_hp) * 30) / 100;
+    d.draw_rectangle(
+        components.midpoint.x as i32,
+        components.midpoint.y as i32 - 10,
+        30,
+        5,
+        Color::GRAY,
+    );
+    d.draw_rectangle(
+        components.midpoint.x as i32,
+        components.midpoint.y as i32 - 10,
+        size,
+        5,
+        Color::RED,
     );
     d.draw_texture_pro(
         components.tex,
@@ -265,9 +314,15 @@ pub fn draw_ui(d: &mut RaylibDrawHandle, state: &State, size: &Rectangle) {
 Walking (Hp: {}, XP: {})
 
 Carrying: {}
+Markers: {}
+Exit distance: {}
 
 ",
-                &state.player.hp, &state.player.xp, &state.player.carrying
+                &state.player.hp,
+                &state.player.xp,
+                &state.player.carrying.name(),
+                &state.path.len(),
+                distance(state.player.pos, state.exit)
             )
         }
         player::PlayerState::Combat(_) => {
@@ -279,13 +334,14 @@ In Combat (Hp: {0})
 (o) - Use {1}
 
 ",
-                &state.player.hp, &state.player.carrying
+                &state.player.hp,
+                &state.player.carrying.name()
             ) + &state
                 .player
                 .items
                 .iter()
                 .enumerate()
-                .map(|(i, v)| format!("({}) - Equip {}", i + 1, v))
+                .map(|(i, v)| format!("({}) - Equip {}", i + 1, v.name()))
                 .collect::<Vec<String>>()
                 .join("\n")
         }

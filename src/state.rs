@@ -17,10 +17,14 @@ pub enum EventType {
 
 #[derive(Debug)]
 pub struct State<'a> {
+    pub exit: Pos,
     pub map: HashMap<Pos, Block>,
+    pub teleporters_map: HashMap<Pos, Block>,
     pub enemies: HashMap<Pos, Enemy>,
     pub player: &'a mut Player,
     pub log: BoundedVecDeque<(String, EventType)>,
+    pub path: BoundedVecDeque<Pos>,
+    pub dungeon: Option<Dungeon>,
 }
 
 impl<'a> State<'a> {
@@ -28,12 +32,16 @@ impl<'a> State<'a> {
         Self {
             player,
             map: Default::default(),
+            teleporters_map: Default::default(),
             enemies: Default::default(),
             log: BoundedVecDeque::new(8),
+            path: BoundedVecDeque::new(300),
+            dungeon: None,
+            exit: (0, 0).into(),
         }
     }
     pub fn update(&mut self) {
-        self.player.check_sourrounding(&self.compute_enemies());
+        self.player.check_sourroundings(&self.compute_enemies());
     }
     pub fn event(&mut self, event: String, etype: EventType) {
         self.log.push_front((event, etype));
@@ -67,6 +75,7 @@ impl<'a> State<'a> {
     }
 
     pub fn reset(&mut self) {
+        self.path = BoundedVecDeque::new(300);
         self.log = BoundedVecDeque::new(8);
         let params = GenerateDungeonParams {
             max_enemies_per_room: 1,
@@ -84,6 +93,7 @@ impl<'a> State<'a> {
         )
             .into();
         let floor = &dungeon.floors[0];
+        self.dungeon = Some(dungeon.clone());
         let mut map = HashMap::new();
         let mut farthes = f32::MIN;
         let mut far_pos = (farthes as isize, farthes as isize);
@@ -116,7 +126,8 @@ impl<'a> State<'a> {
         }));
 
         for (target, teleporter) in tps.values() {
-            map.insert(*teleporter, Block::Teleporter(tps.get(target).unwrap().1));
+            self.teleporters_map
+                .insert(*teleporter, Block::Teleporter(tps.get(target).unwrap().1));
         }
         let enemies: HashMap<Pos, Enemy> = HashMap::from_iter(floor.rooms.iter().flat_map(|r| {
             r.enemies.iter().step_by(2).map(|enemy| {
@@ -131,6 +142,7 @@ impl<'a> State<'a> {
         //    })
         //}));
         map.insert(far_pos.into(), Block::Exit);
+        self.exit = far_pos.into();
         self.map = map;
         self.enemies = enemies;
     }

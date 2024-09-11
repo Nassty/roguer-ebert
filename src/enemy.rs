@@ -9,6 +9,7 @@ use crate::{distance, player::Player, Block};
 #[derive(Debug, PartialEq, Clone)]
 pub struct Enemy {
     pub hp: i32,
+    pub max_hp: i32,
     luck: i32,
     timer: i32,
     pub pos: Pos,
@@ -20,6 +21,7 @@ impl Enemy {
         let luck = rand::thread_rng().gen_range(0..5);
         Self {
             hp,
+            max_hp: hp,
             pos,
             luck,
             timer: 0,
