@@ -9,6 +9,11 @@ impl Pos {
     pub fn as_tuple(&self) -> SymPos {
         (self.0, self.1)
     }
+    pub fn around(&self) -> Vec<Self> {
+        (-1..=1)
+            .flat_map(|y| (-1..=1).map(move |x| Self::from((self.0 + x, self.1 + y))))
+            .collect()
+    }
 }
 
 impl From<(isize, isize)> for Pos {

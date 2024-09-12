@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::utils::Pos;
+use crate::{item::Item, utils::Pos};
 use bounded_vec_deque::BoundedVecDeque;
 use symmetric_shadowcasting::{compute_fov, Pos as SPos};
 use tatami_dungeon::{Dungeon, GenerateDungeonParams, Tile};
@@ -21,6 +21,7 @@ pub struct State<'a> {
     pub map: HashMap<Pos, Block>,
     pub teleporters_map: HashMap<Pos, Block>,
     pub enemies: HashMap<Pos, Enemy>,
+    pub items: HashMap<Pos, Item>,
     pub player: &'a mut Player,
     pub log: BoundedVecDeque<(String, EventType)>,
     pub path: BoundedVecDeque<Pos>,
@@ -32,6 +33,7 @@ impl<'a> State<'a> {
         Self {
             player,
             map: Default::default(),
+            items: Default::default(),
             teleporters_map: Default::default(),
             enemies: Default::default(),
             log: BoundedVecDeque::new(8),
@@ -135,12 +137,14 @@ impl<'a> State<'a> {
                 (p, Enemy::new(32, p, enemy.difficulty))
             })
         }));
-        //let _items = HashMap::<i32, i32>::from_iter(floor.rooms.iter().flat_map(|r| {
-        //    r.items.iter().map(|i| {
-        //        dbg!(i);
-        //        (0, 1)
-        //    })
-        //}));
+        self.items = HashMap::<Pos, Item>::from_iter(floor.rooms.iter().flat_map(|r| {
+            r.items.iter().map(|i| {
+                (
+                    Pos::from((i.position.x as isize, i.position.y as isize)),
+                    rand::random(),
+                )
+            })
+        }));
         map.insert(far_pos.into(), Block::Exit);
         self.exit = far_pos.into();
         self.map = map;

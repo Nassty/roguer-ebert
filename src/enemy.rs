@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::utils::Pos;
+use crate::{
+    item::{EditableEntity, Value},
+    utils::Pos,
+};
 use pathfinding::prelude::astar;
 use rand::Rng;
 
@@ -14,6 +17,16 @@ pub struct Enemy {
     timer: i32,
     pub pos: Pos,
     pub dificulty: u32,
+}
+
+impl EditableEntity for Enemy {
+    fn heal(&mut self, value: &Value) {
+        self.hp += value;
+    }
+
+    fn damage(&mut self, value: &Value) {
+        self.hp -= value;
+    }
 }
 
 impl Enemy {

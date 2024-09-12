@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::item::Item;
+use crate::item::{Action, EditableEntity, Item, Value};
 use crate::utils::Pos;
 use rand::Rng;
 
@@ -26,6 +26,16 @@ pub struct Player {
     swing: u8,
 }
 
+impl EditableEntity for Player {
+    fn heal(&mut self, value: &Value) {
+        self.hp += value;
+    }
+
+    fn damage(&mut self, value: &Value) {
+        self.hp -= value;
+    }
+}
+
 impl Player {
     pub fn new(pos: Pos) -> Self {
         let luck = rand::thread_rng().gen_range(5..15);
@@ -37,7 +47,11 @@ impl Player {
             luck,
             pos,
             state: PlayerState::Walking,
-            carrying: Item::new("Sword".into(), crate::item::ItemType::Melee, HashMap::new()),
+            carrying: Item::new(
+                "Sword".into(),
+                crate::item::ItemType::Melee,
+                HashMap::from([(Action::Damage, 30 as Value)]),
+            ),
             items: vec![],
             swing: 0,
         }

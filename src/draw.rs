@@ -93,7 +93,10 @@ pub fn draw_main_screen(
         if !inside(dest_rect, size) {
             continue;
         }
-        let hue = Color::RED;
+        let hue = match state.player.state {
+            player::PlayerState::Walking => Color::WHITE,
+            player::PlayerState::Combat(_) => Color::VIOLET,
+        };
 
         match state.map.get(&pos).or(state.teleporters_map.get(&pos)) {
             None => {
@@ -259,6 +262,15 @@ pub fn draw_main_screen(
             Color::WHITE,
         );
     }
+    for (pos, _item) in &state.items {
+        let (x, y) = translate_pos!(
+            pos.as_tuple(),
+            state.player.pos,
+            components.midpoint,
+            components.vfactor
+        );
+        d.draw_circle(x, y, 5.0, Color::VIOLET);
+    }
     for step in &state.path {
         let (mut x, mut y) = translate_pos!(
             step.as_tuple(),
@@ -272,7 +284,7 @@ pub fn draw_main_screen(
         if !inside(Rectangle::new(x as f32, y as f32, 1.0, 1.0), size) {
             continue;
         }
-        d.draw_circle(x, y, 1.0, Color::WHITE);
+        d.draw_circle(x, y, 1.0, Color::RAYWHITE);
     }
 
     let dest_rect = Rectangle::new(

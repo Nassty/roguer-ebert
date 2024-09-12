@@ -63,7 +63,10 @@ fn main() {
                         KeyboardKey::KEY_P => {
                             let p = e.first().unwrap();
                             if let Some(enemy) = state.enemies.get_mut(p) {
-                                let damage = state.player.attack(enemy);
+                                let old_hp = enemy.hp;
+                                let item = state.player.carrying.clone();
+                                item.apply(state.player, enemy);
+                                let damage = old_hp - enemy.hp;
                                 state.event(
                                     format!("You attacked an enemy for {} damage", damage),
                                     EventType::DamageDealt,
@@ -98,6 +101,14 @@ fn main() {
         let pressed_key = rl.get_key_pressed();
         if let Some(k) = pressed_key {
             match k {
+                KeyboardKey::KEY_I => {
+                    for pos in state.player.pos.around() {
+                        if let Some(item) = state.items.get(&pos) {
+                            dbg!(item);
+                            break;
+                        }
+                    }
+                }
                 KeyboardKey::KEY_SPACE => {
                     components.debug = !components.debug;
                 }
