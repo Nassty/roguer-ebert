@@ -24,6 +24,7 @@ pub struct Player {
     pub carrying: Item,
     pub xp: i32,
     swing: u8,
+    pub distance: f32,
 }
 
 impl EditableEntity for Player {
@@ -54,6 +55,7 @@ impl Player {
             ),
             items: vec![],
             swing: 0,
+            distance: 30.0,
         }
     }
 

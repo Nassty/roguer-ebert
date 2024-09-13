@@ -178,10 +178,12 @@ fn main() {
             }
         }
         let enemies = state.compute_enemies();
+        let items = state.compute_items();
         draw_main_screen(
             &mut d,
             &mut state,
             &enemies,
+            &items,
             &components,
             Rectangle::new(0.0, 0.0, width as f32, ((height / 3) * 2) as f32),
         );

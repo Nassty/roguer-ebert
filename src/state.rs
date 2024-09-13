@@ -52,7 +52,22 @@ impl<'a> State<'a> {
         let mut fov: Vec<Pos> = vec![];
         let mut is_visible = |pos: SPos| fov.push(pos.into());
         let mut v = |pos: SPos| {
-            distance(pos.into(), self.player.pos) > 10.0 || {
+            distance(pos.into(), self.player.pos) > self.player.distance || {
+                self.map.get(&pos.into()) == Some(&Block::Wall)
+            }
+        };
+        compute_fov(self.player.pos.as_tuple(), &mut v, &mut is_visible);
+        fov
+    }
+    pub fn compute_items(&self) -> Vec<Pos> {
+        let mut fov = vec![];
+        let mut is_visible = |pos: SPos| {
+            if self.items.contains_key(&pos.into()) {
+                fov.push(pos.into());
+            }
+        };
+        let mut v = |pos: SPos| {
+            distance(pos.into(), self.player.pos) > self.player.distance || {
                 self.map.get(&pos.into()) == Some(&Block::Wall)
             }
         };
@@ -68,7 +83,7 @@ impl<'a> State<'a> {
             }
         };
         let mut v = |pos: SPos| {
-            distance(pos.into(), self.player.pos) > 10.0 || {
+            distance(pos.into(), self.player.pos) > self.player.distance || {
                 self.map.get(&pos.into()) == Some(&Block::Wall)
             }
         };

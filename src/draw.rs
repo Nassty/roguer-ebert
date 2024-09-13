@@ -63,7 +63,8 @@ pub fn draw_end_screen(
 pub fn draw_main_screen(
     d: &mut RaylibDrawHandle,
     state: &mut State,
-    enemies: &Vec<Pos>,
+    enemies: &[Pos],
+    items: &[Pos],
     components: &GameComponents,
     size: Rectangle,
 ) {
@@ -94,7 +95,7 @@ pub fn draw_main_screen(
             continue;
         }
         let hue = match state.player.state {
-            player::PlayerState::Walking => Color::WHITE,
+            player::PlayerState::Walking => Color::RED,
             player::PlayerState::Combat(_) => Color::VIOLET,
         };
 
@@ -262,7 +263,8 @@ pub fn draw_main_screen(
             Color::WHITE,
         );
     }
-    for (pos, _item) in &state.items {
+    for pos in items {
+        let _item = state.items.get(pos).unwrap();
         let (x, y) = translate_pos!(
             pos.as_tuple(),
             state.player.pos,
